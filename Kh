@@ -1,0 +1,106 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- UI
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+
+-- ปุ่มเปิด/ปิดบล็อกรองเท้า
+local blockButton = Instance.new("TextButton")
+blockButton.Size = UDim2.new(0, 150, 0, 50)
+blockButton.Position = UDim2.new(0, 20, 0, 100)
+blockButton.Text = "Block: OFF"
+blockButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+blockButton.TextColor3 = Color3.new(1, 1, 1)
+blockButton.Font = Enum.Font.SourceSansBold
+blockButton.TextSize = 22
+blockButton.Parent = screenGui
+
+-- ปุ่มเปิด/ปิด ESP
+local espButton = Instance.new("TextButton")
+espButton.Size = UDim2.new(0, 150, 0, 50)
+espButton.Position = UDim2.new(0, 20, 0, 160)
+espButton.Text = "ESP: OFF"
+espButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+espButton.TextColor3 = Color3.new(1, 1, 1)
+espButton.Font = Enum.Font.SourceSansBold
+espButton.TextSize = 22
+espButton.Parent = screenGui
+
+-- สถานะ
+local blockEnabled = false
+local espEnabled = false
+
+-- Toggle Block
+blockButton.MouseButton1Click:Connect(function()
+    blockEnabled = not blockEnabled
+    if blockEnabled then
+        blockButton.Text = "Block: ON"
+        blockButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        blockButton.Text = "Block: OFF"
+        blockButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    end
+end)
+
+-- Toggle ESP
+espButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    if espEnabled then
+        espButton.Text = "ESP: ON"
+        espButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        -- สร้าง Highlight ให้ผู้เล่นทุกคน ยกเว้นตัวเอง
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character then
+                local highlight = Instance.new("Highlight")
+                highlight.Adornee = p.Character
+                highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+                highlight.Parent = p.Character
+            end
+        end
+    else
+        espButton.Text = "ESP: OFF"
+        espButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        -- ลบ Highlight ทุกตัว
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character then
+                for _, h in pairs(p.Character:GetChildren()) do
+                    if h:IsA("Highlight") then
+                        h:Destroy()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ฟังกระโดดสร้างบล็อก
+UserInputService.JumpRequest:Connect(function()
+    if blockEnabled then
+        local block = Instance.new("Part")
+        block.Size = Vector3.new(6, 1, 6)
+        block.Anchored = true
+        block.CanCollide = true
+        block.Color = Color3.fromRGB(255, 200, 50)
+        block.CFrame = CFrame.new(rootPart.Position - Vector3.new(0, 3, 0))
+        block.Parent = workspace
+        game:GetService("Debris"):AddItem(block, 5)
+    end
+end)
+
+-- ฟังผู้เล่นเข้ามาใหม่ (เพื่อ ESP)
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function(char)
+        if espEnabled then
+            local highlight = Instance.new("Highlight")
+            highlight.Adornee = char
+            highlight.FillColor = Color3.fromRGB(0, 255, 0)
+            highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+            highlight.Parent = char
+        end
+    end)
+end)
