@@ -54,18 +54,20 @@ end
 local blockButton = createButton("Block: OFF", Color3.fromRGB(200,50,50))
 local walkButton = createButton("Walk Mode: OFF", Color3.fromRGB(200,50,50))
 local espButton   = createButton("ESP: OFF", Color3.fromRGB(200,50,50))
+local bypassButton   = createButton("Bypass: OFF", Color3.fromRGB(200,50,50))
 
 -- สถานะ
 local blockEnabled = false
 local walkEnabled = false
 local espEnabled = false
+local bypassEnabled = false
 local menuOpen = false
 
 -- Toggle Menu (Animation)
 toggleButton.MouseButton1Click:Connect(function()
     menuOpen = not menuOpen
     local goal = {}
-    goal.Size = menuOpen and UDim2.new(0, 200, 0, 220) or UDim2.new(0, 200, 0, 0)
+    goal.Size = menuOpen and UDim2.new(0, 200, 0, 280) or UDim2.new(0, 200, 0, 0)
     local tween = TweenService:Create(frame, TweenInfo.new(0.3), goal)
     tween:Play()
 end)
@@ -124,6 +126,18 @@ espButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Toggle Bypass
+bypassButton.MouseButton1Click:Connect(function()
+    bypassEnabled = not bypassEnabled
+    if bypassEnabled then
+        bypassButton.Text = "Bypass: ON"
+        bypassButton.BackgroundColor3 = Color3.fromRGB(50,200,50)
+    else
+        bypassButton.Text = "Bypass: OFF"
+        bypassButton.BackgroundColor3 = Color3.fromRGB(200,50,50)
+    end
+end)
+
 -- ฟังกระโดดสร้างบล็อก
 UserInputService.JumpRequest:Connect(function()
     if blockEnabled then
@@ -138,7 +152,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- Walk Mode + บล็อกต่อเนื่อง + Bypass กันวาป
+-- Walk Mode + Bypass กันวาป
 local lastBlockPosition = nil
 local blockSpacing = 6
 
@@ -158,8 +172,12 @@ RunService.RenderStepped:Connect(function()
             block.Parent = workspace
             game:GetService("Debris"):AddItem(block,5)
 
-            -- Bypass กันวาป: บังคับอยู่บนบล็อกล่าสุด
-            rootPart.CFrame = CFrame.new(Vector3.new(block.Position.X, block.Position.Y + 3, block.Position.Z), rootPart.Position + rootPart.CFrame.LookVector)
+            if bypassEnabled then
+                rootPart.CFrame = CFrame.new(
+                    Vector3.new(block.Position.X, block.Position.Y + 3, block.Position.Z),
+                    rootPart.Position + rootPart.CFrame.LookVector
+                )
+            end
 
             lastBlockPosition = block.Position
         end
