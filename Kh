@@ -1,61 +1,84 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- UI
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+-- UI หลัก
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SkyWalkUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- ปุ่มเปิด/ปิด Block (กระโดด)
-local blockButton = Instance.new("TextButton")
-blockButton.Size = UDim2.new(0, 150, 0, 50)
-blockButton.Position = UDim2.new(0, 20, 0, 100)
-blockButton.Text = "Block: OFF"
-blockButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-blockButton.TextColor3 = Color3.new(1, 1, 1)
-blockButton.Font = Enum.Font.SourceSansBold
-blockButton.TextSize = 22
-blockButton.Parent = screenGui
+-- ปุ่มมุมจอ Toggle Menu
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.Text = "≡"
+toggleButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+toggleButton.TextColor3 = Color3.new(1,1,1)
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextSize = 28
+toggleButton.Parent = screenGui
 
--- ปุ่มเปิด/ปิด Walk Mode
-local walkButton = Instance.new("TextButton")
-walkButton.Size = UDim2.new(0, 150, 0, 50)
-walkButton.Position = UDim2.new(0, 20, 0, 160)
-walkButton.Text = "Walk Mode: OFF"
-walkButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-walkButton.TextColor3 = Color3.new(1, 1, 1)
-walkButton.Font = Enum.Font.SourceSansBold
-walkButton.TextSize = 22
-walkButton.Parent = screenGui
+-- เมนูหลัก (เริ่มซ่อน)
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 0)
+frame.Position = UDim2.new(0, 20, 0, 80)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
 
--- ปุ่มเปิด/ปิด ESP
-local espButton = Instance.new("TextButton")
-espButton.Size = UDim2.new(0, 150, 0, 50)
-espButton.Position = UDim2.new(0, 20, 0, 220)
-espButton.Text = "ESP: OFF"
-espButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-espButton.TextColor3 = Color3.new(1, 1, 1)
-espButton.Font = Enum.Font.SourceSansBold
-espButton.TextSize = 22
-espButton.Parent = screenGui
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.Parent = frame
+uiListLayout.Padding = UDim.new(0, 10)
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- ฟังก์ชันสร้างปุ่ม
+local function createButton(text, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 50)
+    btn.BackgroundColor3 = color
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 22
+    btn.Text = text
+    btn.Parent = frame
+    return btn
+end
+
+-- ปุ่มแต่ละฟีเจอร์
+local blockButton = createButton("Block: OFF", Color3.fromRGB(200,50,50))
+local walkButton = createButton("Walk Mode: OFF", Color3.fromRGB(200,50,50))
+local espButton   = createButton("ESP: OFF", Color3.fromRGB(200,50,50))
 
 -- สถานะ
 local blockEnabled = false
 local walkEnabled = false
 local espEnabled = false
+local menuOpen = false
+
+-- Toggle Menu (Animation)
+toggleButton.MouseButton1Click:Connect(function()
+    menuOpen = not menuOpen
+    local goal = {}
+    goal.Size = menuOpen and UDim2.new(0, 200, 0, 220) or UDim2.new(0, 200, 0, 0)
+    local tween = TweenService:Create(frame, TweenInfo.new(0.3), goal)
+    tween:Play()
+end)
 
 -- Toggle Block
 blockButton.MouseButton1Click:Connect(function()
     blockEnabled = not blockEnabled
     if blockEnabled then
         blockButton.Text = "Block: ON"
-        blockButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        blockButton.BackgroundColor3 = Color3.fromRGB(50,200,50)
     else
         blockButton.Text = "Block: OFF"
-        blockButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        blockButton.BackgroundColor3 = Color3.fromRGB(200,50,50)
     end
 end)
 
@@ -64,10 +87,10 @@ walkButton.MouseButton1Click:Connect(function()
     walkEnabled = not walkEnabled
     if walkEnabled then
         walkButton.Text = "Walk Mode: ON"
-        walkButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        walkButton.BackgroundColor3 = Color3.fromRGB(50,200,50)
     else
         walkButton.Text = "Walk Mode: OFF"
-        walkButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        walkButton.BackgroundColor3 = Color3.fromRGB(200,50,50)
     end
 end)
 
@@ -76,19 +99,19 @@ espButton.MouseButton1Click:Connect(function()
     espEnabled = not espEnabled
     if espEnabled then
         espButton.Text = "ESP: ON"
-        espButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        espButton.BackgroundColor3 = Color3.fromRGB(50,200,50)
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= player and p.Character then
                 local highlight = Instance.new("Highlight")
                 highlight.Adornee = p.Character
-                highlight.FillColor = Color3.fromRGB(0, 255, 0)
-                highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+                highlight.FillColor = Color3.fromRGB(0,255,0)
+                highlight.OutlineColor = Color3.fromRGB(0,255,0)
                 highlight.Parent = p.Character
             end
         end
     else
         espButton.Text = "ESP: OFF"
-        espButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        espButton.BackgroundColor3 = Color3.fromRGB(200,50,50)
         for _, p in pairs(Players:GetPlayers()) do
             if p.Character then
                 for _, h in pairs(p.Character:GetChildren()) do
@@ -105,45 +128,54 @@ end)
 UserInputService.JumpRequest:Connect(function()
     if blockEnabled then
         local block = Instance.new("Part")
-        block.Size = Vector3.new(6, 1, 6)
+        block.Size = Vector3.new(6,1,6)
         block.Anchored = true
         block.CanCollide = true
-        block.Color = Color3.fromRGB(255, 200, 50)
-        block.CFrame = CFrame.new(rootPart.Position - Vector3.new(0, 3, 0))
+        block.Color = Color3.fromRGB(255,200,50)
+        block.CFrame = CFrame.new(rootPart.Position - Vector3.new(0,3,0))
         block.Parent = workspace
-        game:GetService("Debris"):AddItem(block, 5)
+        game:GetService("Debris"):AddItem(block,5)
     end
 end)
 
--- ฟังการเดินเพื่อสร้างบล็อกอัตโนมัติ (Walk Mode)
-local lastPosition = rootPart.Position
+-- Walk Mode + บล็อกต่อเนื่อง + Bypass กันวาป
+local lastBlockPosition = nil
+local blockSpacing = 6
+
 RunService.RenderStepped:Connect(function()
     if walkEnabled then
-        local distance = (rootPart.Position - lastPosition).Magnitude
-        if distance > 1 then -- ขยับเกิน 1 stud จะสร้างบล็อก
+        local currentPos = rootPart.Position
+        local posXZ = Vector3.new(currentPos.X,0,currentPos.Z)
+        local lastXZ = lastBlockPosition and Vector3.new(lastBlockPosition.X,0,lastBlockPosition.Z) or nil
+
+        if not lastBlockPosition or (posXZ - lastXZ).Magnitude >= blockSpacing then
             local block = Instance.new("Part")
-            block.Size = Vector3.new(6, 1, 6)
+            block.Size = Vector3.new(6,1,6)
             block.Anchored = true
             block.CanCollide = true
-            block.Color = Color3.fromRGB(255, 200, 50)
-            block.CFrame = CFrame.new(rootPart.Position - Vector3.new(0, 3, 0))
+            block.Color = Color3.fromRGB(255,200,50)
+            block.CFrame = CFrame.new(Vector3.new(currentPos.X, currentPos.Y - 3, currentPos.Z))
             block.Parent = workspace
-            game:GetService("Debris"):AddItem(block, 5)
-            lastPosition = rootPart.Position
+            game:GetService("Debris"):AddItem(block,5)
+
+            -- Bypass กันวาป: บังคับอยู่บนบล็อกล่าสุด
+            rootPart.CFrame = CFrame.new(Vector3.new(block.Position.X, block.Position.Y + 3, block.Position.Z), rootPart.Position + rootPart.CFrame.LookVector)
+
+            lastBlockPosition = block.Position
         end
     else
-        lastPosition = rootPart.Position
+        lastBlockPosition = nil
     end
 end)
 
--- ฟังผู้เล่นเข้ามาใหม่ (ESP)
+-- ESP สำหรับผู้เล่นเข้ามาใหม่
 Players.PlayerAdded:Connect(function(p)
     p.CharacterAdded:Connect(function(char)
         if espEnabled then
             local highlight = Instance.new("Highlight")
             highlight.Adornee = char
-            highlight.FillColor = Color3.fromRGB(0, 255, 0)
-            highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+            highlight.FillColor = Color3.fromRGB(0,255,0)
+            highlight.OutlineColor = Color3.fromRGB(0,255,0)
             highlight.Parent = char
         end
     end)
