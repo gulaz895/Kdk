@@ -10,7 +10,7 @@ screenGui.Name = "SkyWalkUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- ปุ่มเปิด/ปิดเมนู (ลากได้)
+-- ปุ่มหลัก (ลากได้)
 local toggleButton = Instance.new("TextButton")
 toggleButton.Size = UDim2.new(0, 60, 0, 60)
 toggleButton.Position = UDim2.new(0, 20, 0, 20)
@@ -24,29 +24,20 @@ toggleButton.Parent = screenGui
 -- ระบบลากปุ่ม
 local dragging = false
 local dragStart, startPos
-
 toggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 
-    or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
         startPos = toggleButton.Position
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
         end)
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement 
-    or input.UserInputType == Enum.UserInputType.Touch) then
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        toggleButton.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
-        )
+        toggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
@@ -54,110 +45,114 @@ end)
 local frame = Instance.new("ScrollingFrame")
 frame.Size = UDim2.new(0, 220, 0, 220)
 frame.Position = UDim2.new(0, 20, 0, 90)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 frame.BorderSizePixel = 0
 frame.ClipsDescendants = true
-frame.CanvasSize = UDim2.new(0, 0, 0, 0)
+frame.CanvasSize = UDim2.new(0,0,0,0)
 frame.ScrollBarThickness = 6
 frame.Parent = screenGui
 
--- Layout สำหรับปุ่ม
+-- Layout + Padding
 local uiListLayout = Instance.new("UIListLayout")
 uiListLayout.Parent = frame
-uiListLayout.Padding = UDim.new(0, 8)
+uiListLayout.Padding = UDim.new(0,8)
 uiListLayout.FillDirection = Enum.FillDirection.Vertical
 uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 uiListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 local padding = Instance.new("UIPadding")
 padding.Parent = frame
-padding.PaddingTop = UDim.new(0, 10)
-padding.PaddingLeft = UDim.new(0, 10)
-padding.PaddingRight = UDim.new(0, 10)
+padding.PaddingTop = UDim.new(0,10)
+padding.PaddingLeft = UDim.new(0,10)
+padding.PaddingRight = UDim.new(0,10)
 
--- ฟังก์ชันปรับ CanvasSize อัตโนมัติ
 local function updateCanvas()
-    frame.CanvasSize = UDim2.new(0, 0, 0, uiListLayout.AbsoluteContentSize.Y + 10)
+    frame.CanvasSize = UDim2.new(0,0,0,uiListLayout.AbsoluteContentSize.Y+10)
 end
 
 -- ฟังก์ชันสร้างปุ่มย่อย
 local function createButton(text)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -20, 0, 45)
+    btn.Size = UDim2.new(1,-20,0,45)
     btn.BackgroundColor3 = Color3.fromRGB(200,50,50)
     btn.TextColor3 = Color3.new(1,1,1)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 20
-    btn.Text = text .. ": OFF"
+    btn.Text = text..": OFF"
     btn.Parent = frame
     updateCanvas()
     return btn
 end
 
--- ปุ่มย่อย
-local blockButton  = createButton("Block")
-local walkButton   = createButton("Walk Mode")
-local espButton    = createButton("ESP")
+-- ปุ่มย่อยทั้งหมด
+local blockButton = createButton("Block")
+local walkButton = createButton("Walk Mode")
+local espButton = createButton("ESP")
 local bypassButton = createButton("Bypass")
+local hookButton = createButton("Hook / ขโมย")
+local homeButton = createButton("กลับบ้าน")
 
 -- สถานะ
 local menuOpen = false
-local blockEnabled, walkEnabled, espEnabled, bypassEnabled = false, false, false, false
+local blockEnabled, walkEnabled, espEnabled, bypassEnabled = false,false,false,false
+local hookEnabled, flyHome = false,false
 local lastBlockPos = nil
 local espObjects = {}
+local hookTarget = nil
+local pinkBlock = nil
 
 -- เปิด/ปิดเมนู
 toggleButton.MouseButton1Click:Connect(function()
     if dragging then return end
     menuOpen = not menuOpen
-    local goal = {}
-    goal.Size = menuOpen and UDim2.new(0, 220, 0, 220) or UDim2.new(0, 220, 0, 0)
-    TweenService:Create(frame, TweenInfo.new(0.3), goal):Play()
+    TweenService:Create(frame, TweenInfo.new(0.3), {Size = menuOpen and UDim2.new(0,220,0,220) or UDim2.new(0,220,0,0)}):Play()
 end)
 
--- ฟังก์ชัน toggle
+-- Toggle ฟีเจอร์
 local function toggleFeature(flag, button, name)
     flag = not flag
-    button.Text = name .. ": " .. (flag and "ON" or "OFF")
+    button.Text = name..": "..(flag and "ON" or "OFF")
     button.BackgroundColor3 = flag and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
     return flag
 end
 
--- ปุ่มย่อย
-blockButton.MouseButton1Click:Connect(function()
-    blockEnabled = toggleFeature(blockEnabled, blockButton, "Block")
-end)
-walkButton.MouseButton1Click:Connect(function()
-    walkEnabled = toggleFeature(walkEnabled, walkButton, "Walk Mode")
-end)
+-- ตั้งปุ่มย่อย
+blockButton.MouseButton1Click:Connect(function() blockEnabled = toggleFeature(blockEnabled, blockButton, "Block") end)
+walkButton.MouseButton1Click:Connect(function() walkEnabled = toggleFeature(walkEnabled, walkButton, "Walk Mode") end)
 espButton.MouseButton1Click:Connect(function()
     espEnabled = toggleFeature(espEnabled, espButton, "ESP")
     if not espEnabled then
-        for _, obj in pairs(espObjects) do
-            obj:Destroy()
-        end
+        for _, obj in pairs(espObjects) do obj:Destroy() end
         espObjects = {}
     end
 end)
-bypassButton.MouseButton1Click:Connect(function()
-    bypassEnabled = toggleFeature(bypassEnabled, bypassButton, "Bypass")
+bypassButton.MouseButton1Click:Connect(function() bypassEnabled = toggleFeature(bypassEnabled, bypassButton, "Bypass") end)
+
+-- Hook / ขโมย
+hookButton.MouseButton1Click:Connect(function()
+    hookEnabled = toggleFeature(hookEnabled, hookButton, "Hook / ขโมย")
 end)
 
--- ฟังก์ชันสร้างบล็อก
-local function createBlock(pos)
+-- กลับบ้าน
+homeButton.MouseButton1Click:Connect(function()
+    flyHome = true
+end)
+
+-- สร้างบล็อก
+local function createBlock(pos,color)
     local part = Instance.new("Part")
     part.Size = Vector3.new(6,1,6)
     part.Position = pos
     part.Anchored = true
     part.Material = Enum.Material.Neon
-    part.Color = Color3.fromRGB(0,255,0)
+    part.Color = color
     part.CanCollide = true
     part.Parent = workspace
-    game.Debris:AddItem(part, 5)
+    game.Debris:AddItem(part,5)
     return part.Position
 end
 
--- ฟังก์ชันสร้าง ESP
+-- สร้าง ESP
 local function createESP(player)
     if player == LocalPlayer then return end
     if not player.Character then return end
@@ -172,37 +167,70 @@ end
 -- Loop หลัก
 RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then return end
     local root = char.HumanoidRootPart
+    local humanoid = char.Humanoid
 
-    -- Block Mode (กดกระโดด)
-    if blockEnabled then
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            createBlock(root.Position - Vector3.new(0, 3, 0))
-        end
+    -- Block Mode
+    if blockEnabled and UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+        createBlock(root.Position - Vector3.new(0,3,0), Color3.fromRGB(0,255,0))
     end
 
-    -- Walk Mode (สร้างต่อเนื่อง)
+    -- Walk Mode
     if walkEnabled then
-        local pos = root.Position - Vector3.new(0, 3, 0)
+        local pos = root.Position - Vector3.new(0,3,0)
         if not lastBlockPos or (lastBlockPos - pos).Magnitude > 6 then
-            lastBlockPos = createBlock(pos)
+            lastBlockPos = createBlock(pos, Color3.fromRGB(0,255,0))
         end
     end
 
     -- ESP
     if espEnabled then
         for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character and not espObjects[plr] then
-                createESP(plr)
-            end
+            if plr ~= LocalPlayer and plr.Character and not espObjects[plr] then createESP(plr) end
         end
     end
 
-    -- Bypass กันวาร์ป
+    -- Bypass
     if bypassEnabled then
-        pcall(function()
-            root.Anchored = false
-        end)
+        pcall(function() root.Anchored = false end)
+    end
+
+    -- Hook / ขโมยตัวเอง
+    if hookEnabled then
+        if not pinkBlock then
+            pinkBlock = Instance.new("Part")
+            pinkBlock.Size = Vector3.new(4,4,4)
+            pinkBlock.Color = Color3.fromRGB(255,105,180)
+            pinkBlock.Anchored = false
+            pinkBlock.CanCollide = false
+            pinkBlock.Parent = workspace
+            local weld = Instance.new("WeldConstraint")
+            weld.Part0 = pinkBlock
+            weld.Part1 = root
+            weld.Parent = pinkBlock
+        end
+        humanoid.PlatformStand = true
+        root.CanCollide = false
+    else
+        if pinkBlock then pinkBlock:Destroy(); pinkBlock = nil end
+        humanoid.PlatformStand = false
+        root.CanCollide = true
+    end
+
+    -- กลับบ้านอย่างปลอดภัย
+    if flyHome then
+        local homePos = Vector3.new(0,50,0) -- เปลี่ยนเป็นตำแหน่งบ้านคุณ
+        local dir = (homePos - root.Position).Unit
+        local distance = (homePos - root.Position).Magnitude
+        if distance > 1 then
+            root.Velocity = dir * 50
+            humanoid.PlatformStand = true
+            root.CanCollide = false
+        else
+            flyHome = false
+            humanoid.PlatformStand = false
+            root.CanCollide = true
+        end
     end
 end)
