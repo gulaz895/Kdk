@@ -90,6 +90,7 @@ local walkButton = createButton("Walk Mode")
 local espButton = createButton("ESP")
 local bypassButton = createButton("Bypass")
 local hookButton = createButton("Hook / ขโมย")
+local saveHomeButton = createButton("เซฟบ้าน")
 local homeButton = createButton("กลับบ้าน")
 
 -- สถานะ
@@ -100,6 +101,8 @@ local lastBlockPos = nil
 local espObjects = {}
 local hookTarget = nil
 local pinkBlock = nil
+local homePos = nil
+local homeFlyEnabled = false
 
 -- เปิด/ปิดเมนู
 toggleButton.MouseButton1Click:Connect(function()
@@ -127,15 +130,23 @@ espButton.MouseButton1Click:Connect(function()
     end
 end)
 bypassButton.MouseButton1Click:Connect(function() bypassEnabled = toggleFeature(bypassEnabled, bypassButton, "Bypass") end)
+hookButton.MouseButton1Click:Connect(function() hookEnabled = toggleFeature(hookEnabled, hookButton, "Hook / ขโมย") end)
 
--- Hook / ขโมย
-hookButton.MouseButton1Click:Connect(function()
-    hookEnabled = toggleFeature(hookEnabled, hookButton, "Hook / ขโมย")
+-- เซฟบ้าน
+saveHomeButton.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        homePos = char.HumanoidRootPart.Position
+        saveHomeButton.Text = "เซฟบ้าน: SAVED"
+    end
 end)
 
--- กลับบ้าน
+-- กลับบ้าน toggle
 homeButton.MouseButton1Click:Connect(function()
-    flyHome = true
+    if homePos then
+        homeFlyEnabled = not homeFlyEnabled
+        homeButton.Text = "กลับบ้าน: "..(homeFlyEnabled and "ON" or "OFF")
+    end
 end)
 
 -- สร้างบล็อก
@@ -214,21 +225,22 @@ RunService.RenderStepped:Connect(function()
         root.CanCollide = false
     else
         if pinkBlock then pinkBlock:Destroy(); pinkBlock = nil end
-        humanoid.PlatformStand = false
-        root.CanCollide = true
+        if not homeFlyEnabled then
+            humanoid.PlatformStand = false
+            root.CanCollide = true
+        end
     end
 
     -- กลับบ้านอย่างปลอดภัย
-    if flyHome then
-        local homePos = Vector3.new(0,50,0) -- เปลี่ยนเป็นตำแหน่งบ้านคุณ
+    if homeFlyEnabled and homePos then
         local dir = (homePos - root.Position).Unit
         local distance = (homePos - root.Position).Magnitude
         if distance > 1 then
-            root.Velocity = dir * 50
+            root.Velocity = dir * 25 -- ความเร็ว 25 studs/วินาที
             humanoid.PlatformStand = true
             root.CanCollide = false
         else
-            flyHome = false
+            homeFlyEnabled = false
             humanoid.PlatformStand = false
             root.CanCollide = true
         end
