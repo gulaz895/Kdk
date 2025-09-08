@@ -92,6 +92,7 @@ local bypassButton = createButton("Bypass")
 local hookButton = createButton("Hook / ขโมย")
 local saveHomeButton = createButton("เซฟบ้าน")
 local homeButton = createButton("กลับบ้าน")
+local flyUpButton = createButton("Fly Up / ชั้นบิน")
 
 -- สถานะ
 local menuOpen = false
@@ -103,6 +104,8 @@ local hookTarget = nil
 local pinkBlock = nil
 local homePos = nil
 local homeFlyEnabled = false
+local flyLayerEnabled = false
+local flySpeed = 25 -- ความเร็วบิน
 
 -- เปิด/ปิดเมนู
 toggleButton.MouseButton1Click:Connect(function()
@@ -147,6 +150,11 @@ homeButton.MouseButton1Click:Connect(function()
         homeFlyEnabled = not homeFlyEnabled
         homeButton.Text = "กลับบ้าน: "..(homeFlyEnabled and "ON" or "OFF")
     end
+end)
+
+-- Fly Up / ชั้นบิน toggle
+flyUpButton.MouseButton1Click:Connect(function()
+    flyLayerEnabled = toggleFeature(flyLayerEnabled, flyUpButton, "Fly Up / ชั้นบิน")
 end)
 
 -- สร้างบล็อก
@@ -225,7 +233,7 @@ RunService.RenderStepped:Connect(function()
         root.CanCollide = false
     else
         if pinkBlock then pinkBlock:Destroy(); pinkBlock = nil end
-        if not homeFlyEnabled then
+        if not homeFlyEnabled and not flyLayerEnabled then
             humanoid.PlatformStand = false
             root.CanCollide = true
         end
@@ -236,7 +244,7 @@ RunService.RenderStepped:Connect(function()
         local dir = (homePos - root.Position).Unit
         local distance = (homePos - root.Position).Magnitude
         if distance > 1 then
-            root.Velocity = dir * 25 -- ความเร็ว 25 studs/วินาที
+            root.Velocity = dir * flySpeed -- ความเร็ว 25 studs/วินาที
             humanoid.PlatformStand = true
             root.CanCollide = false
         else
@@ -244,5 +252,13 @@ RunService.RenderStepped:Connect(function()
             humanoid.PlatformStand = false
             root.CanCollide = true
         end
+    end
+
+    -- Fly Up / ชั้นบิน
+    if flyLayerEnabled then
+        root.Velocity = Vector3.new(0,flySpeed,0)
+        createBlock(root.Position - Vector3.new(0,3,0), Color3.fromRGB(0,255,0))
+        humanoid.PlatformStand = true
+        root.CanCollide = false
     end
 end)
