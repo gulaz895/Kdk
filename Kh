@@ -50,18 +50,35 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- เมนูหลัก
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 0)
+-- เมนูหลัก (ScrollingFrame)
+local frame = Instance.new("ScrollingFrame")
+frame.Size = UDim2.new(0, 220, 0, 220)
 frame.Position = UDim2.new(0, 20, 0, 90)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
+frame.ClipsDescendants = true
+frame.CanvasSize = UDim2.new(0, 0, 0, 0)
+frame.ScrollBarThickness = 6
 frame.Parent = screenGui
 
+-- Layout สำหรับปุ่ม
 local uiListLayout = Instance.new("UIListLayout")
 uiListLayout.Parent = frame
-uiListLayout.Padding = UDim.new(0, 10)
-uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Padding = UDim.new(0, 8)
+uiListLayout.FillDirection = Enum.FillDirection.Vertical
+uiListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+uiListLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+local padding = Instance.new("UIPadding")
+padding.Parent = frame
+padding.PaddingTop = UDim.new(0, 10)
+padding.PaddingLeft = UDim.new(0, 10)
+padding.PaddingRight = UDim.new(0, 10)
+
+-- ฟังก์ชันปรับ CanvasSize อัตโนมัติ
+local function updateCanvas()
+    frame.CanvasSize = UDim2.new(0, 0, 0, uiListLayout.AbsoluteContentSize.Y + 10)
+end
 
 -- ฟังก์ชันสร้างปุ่มย่อย
 local function createButton(text)
@@ -73,10 +90,11 @@ local function createButton(text)
     btn.TextSize = 20
     btn.Text = text .. ": OFF"
     btn.Parent = frame
+    updateCanvas()
     return btn
 end
 
--- ปุ่มในเมนู
+-- ปุ่มย่อย
 local blockButton  = createButton("Block")
 local walkButton   = createButton("Walk Mode")
 local espButton    = createButton("ESP")
@@ -90,7 +108,7 @@ local espObjects = {}
 
 -- เปิด/ปิดเมนู
 toggleButton.MouseButton1Click:Connect(function()
-    if dragging then return end -- กันเผลอกดตอนลาก
+    if dragging then return end
     menuOpen = not menuOpen
     local goal = {}
     goal.Size = menuOpen and UDim2.new(0, 220, 0, 220) or UDim2.new(0, 220, 0, 0)
@@ -105,21 +123,15 @@ local function toggleFeature(flag, button, name)
     return flag
 end
 
--- ปุ่ม Block
+-- ปุ่มย่อย
 blockButton.MouseButton1Click:Connect(function()
     blockEnabled = toggleFeature(blockEnabled, blockButton, "Block")
 end)
-
--- ปุ่ม Walk Mode
 walkButton.MouseButton1Click:Connect(function()
     walkEnabled = toggleFeature(walkEnabled, walkButton, "Walk Mode")
 end)
-
--- ปุ่ม ESP
 espButton.MouseButton1Click:Connect(function()
     espEnabled = toggleFeature(espEnabled, espButton, "ESP")
-
-    -- ลบ ESP ถ้าปิด
     if not espEnabled then
         for _, obj in pairs(espObjects) do
             obj:Destroy()
@@ -127,8 +139,6 @@ espButton.MouseButton1Click:Connect(function()
         espObjects = {}
     end
 end)
-
--- ปุ่ม Bypass
 bypassButton.MouseButton1Click:Connect(function()
     bypassEnabled = toggleFeature(bypassEnabled, bypassButton, "Bypass")
 end)
@@ -143,7 +153,6 @@ local function createBlock(pos)
     part.Color = Color3.fromRGB(0,255,0)
     part.CanCollide = true
     part.Parent = workspace
-
     game.Debris:AddItem(part, 5)
     return part.Position
 end
@@ -151,6 +160,7 @@ end
 -- ฟังก์ชันสร้าง ESP
 local function createESP(player)
     if player == LocalPlayer then return end
+    if not player.Character then return end
     local highlight = Instance.new("Highlight")
     highlight.Adornee = player.Character
     highlight.FillColor = Color3.fromRGB(255,0,0)
